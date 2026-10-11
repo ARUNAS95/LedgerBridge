@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import {JsonRpcProvider,Wallet,ContractFactory} from 'ethers';
+import './compile.mjs';
+const provider=new JsonRpcProvider(process.env.ETH_RPC_URL??'http://127.0.0.1:8545');
+if((await provider.getNetwork()).chainId!==1337n) throw new Error('Deployment script only supports disposable local chain 1337');
+const wallet=Wallet.fromPhrase('test test test test test test test test test test test junk').connect(provider);
+const artifact=JSON.parse(fs.readFileSync('deployment/contract.json'));
+const contract=await new ContractFactory(artifact.abi,artifact.bytecode,wallet).deploy(wallet.address);
+await contract.waitForDeployment();
+const address=await contract.getAddress();
+fs.writeFileSync('deployment/local.json',JSON.stringify({address,chainId:1337,rpcUrl:'http://127.0.0.1:8545',privateKey:wallet.privateKey},null,2));
+fs.writeFileSync('deployment/backend.env',`LEDGER_CONTRACT=${address}\nLEDGER_PRIVATE_KEY=${wallet.privateKey}\n`);
+console.log('Deployed digest-only AuditAnchor:',address);

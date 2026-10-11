@@ -1,0 +1,37 @@
+name: Verify LedgerBridge
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: npm ci
+      - run: npm run test:contracts
+      - run: mvn -B test -f backend/pom.xml
+      - run: npm ci --prefix frontend
+      - run: npm run build --prefix frontend
+      - name: Real local-chain and embedded-Kafka integration
+        run: |
+          npm run chain > /tmp/chain.log 2>&1 &
+          CHAIN_PID=$!
+          trap 'kill $CHAIN_PID' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:8545; then break; fi
+            sleep 1
+          done
+          npm run deploy
+          set -a
+          . deployment/backend.env
+          set +a
+          mvn -B test -Dblockchain.it=true -f backend/pom.xml

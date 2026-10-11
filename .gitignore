@@ -1,0 +1,8 @@
+node_modules/
+target/
+frontend/dist/
+frontend/.angular/
+deployment/
+.env
+*.log
+.DS_Store

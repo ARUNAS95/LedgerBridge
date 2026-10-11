@@ -1,0 +1,37 @@
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:ledger;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+  sql:
+    init:
+      mode: always
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+    consumer:
+      group-id: ledgerbridge-anchor
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
+ledger:
+  events-enabled: ${LEDGER_EVENTS_ENABLED:false}
+  api-key: ${LEDGER_API_KEY:local-demo-key}
+  rpc-url: ${ETH_RPC_URL:http://127.0.0.1:8545}
+  contract: ${LEDGER_CONTRACT:}
+  private-key: ${LEDGER_PRIVATE_KEY:}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
